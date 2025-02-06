@@ -7,6 +7,12 @@ const housesControllers = require("../controllers/housesControllers");
 router.get("/", housesControllers.index);
 
 // Show
-router.get("/:id", housesControllers.show);
+router.get("/:slug", housesControllers.show);
+
+// Store
+router.post("/", housesControllers.store);
+
+// Destroy
+router.delete("/:id", housesControllers.destroy);
 
 module.exports = router;

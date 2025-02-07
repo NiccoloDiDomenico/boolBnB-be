@@ -9,7 +9,7 @@ const index = (req, res) => {
     const sql = `
         SELECT DISTINCT annunci.* 
         FROM annunci 
-        JOIN cuoricini
+        LEFT JOIN cuoricini
         ON annunci.id = cuoricini.annuncio_id
         ORDER BY annunci.likes DESC
     `
@@ -61,7 +61,10 @@ const show = (req, res) => {
 
 // Store House
 const storeHouse = (req, res) => {
-    const { utente_id, tipologia, prezzo_notte, titolo_annuncio, descrizione_annuncio, indirizzo, città, paese, capienza, metri_quadri, numero_camere, numero_letti, numero_bagni, data_creazione } = req.body
+    const immagine = req.file.filename
+    const data_creazione = new Date();
+    const likes = 0
+    const { utente_id, tipologia, prezzo_notte, titolo_annuncio, descrizione_annuncio, indirizzo_completo, metri_quadri, numero_camere, numero_letti, numero_bagni } = req.body
 
     const slug = slugify(titolo_annuncio, {
         lower: true,
@@ -69,11 +72,12 @@ const storeHouse = (req, res) => {
     })
 
     const sql = `
-        INSERT INTO annunci(utente_id, tipologia, prezzo_notte, titolo_annuncio, slug, descrizione_annuncio, indirizzo, città, paese, capienza, metri_quadri, numero_camere, numero_letti, numero_bagni, data_creazione)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO annunci(utente_id, slug, titolo_annuncio, descrizione_annuncio, prezzo_notte, tipologia, likes, immagine, indirizzo_completo, numero_camere, numero_letti, numero_bagni, metri_quadri, data_creazione)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    connection.query(sql, [utente_id, tipologia, prezzo_notte, titolo_annuncio, slug, descrizione_annuncio, indirizzo, città, paese, capienza, metri_quadri, numero_camere, numero_letti, numero_bagni, data_creazione], (err, result) => {
+
+    connection.query(sql, [utente_id, slug, titolo_annuncio, descrizione_annuncio, prezzo_notte, tipologia, likes, immagine, indirizzo_completo, numero_camere, numero_letti, numero_bagni, metri_quadri, data_creazione], (err, result) => {
         if (err)
             return res.status(500).json({ error: 'Database query failed', err: err.stack })
 

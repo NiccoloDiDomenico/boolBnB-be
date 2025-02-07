@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const housesControllers = require("../controllers/housesControllers");
+const publicUpload = require("../middlewares/fileUpload");
 
 // Index
 router.get("/", housesControllers.index);
@@ -10,7 +11,7 @@ router.get("/", housesControllers.index);
 router.get("/:slug", housesControllers.show);
 
 // Store - house
-router.post("/", housesControllers.storeHouse);
+router.post("/", publicUpload.single("immagine"), housesControllers.storeHouse);
 
 // Store - house review
 router.post("/:id/review", housesControllers.storeReview);
@@ -22,11 +23,3 @@ router.post("/:id/like", housesControllers.storeLike);
 router.delete("/:id", housesControllers.destroy);
 
 module.exports = router;
-
-
-// {
-//     "nome": "Marcolino",
-//     "commento": "Fa schifo",
-//     "giorni_permanenza": "1",
-//     "data_recensione": "2025-02-07",
-// }

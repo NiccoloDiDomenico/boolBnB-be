@@ -1,7 +1,8 @@
 // Import
 const express = require('express');
 const housesRoutes = require("./routes/housesRoutes");
-const exp = require('constants');
+const pageNotFound = require('./middlewares/pageNotFound');
+const errorsHandler = require('./middlewares/errorsHandler');
 
 // Creazione app express
 const app = express();
@@ -14,7 +15,11 @@ app.use(express.static('public'));
 app.use(express.json());
 
 // Definisce le rotte
-app.use("/houses", housesRoutes);
+app.use("/houses", errorsHandler, housesRoutes);
+
+// Middleware per la gestione degli errori
+app.use(errorsHandler);
+app.use(pageNotFound);
 
 app.listen(port, () => {
     console.log(`app is listening on ${port}`);

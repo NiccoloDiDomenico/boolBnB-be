@@ -1,7 +1,6 @@
 // Import
 const express = require('express');
 const housesRoutes = require("./routes/housesRoutes");
-const reviewsRoutes = require("./routes/reviewsRoutes");
 const exp = require('constants');
 
 // Creazione app express
@@ -16,7 +15,6 @@ app.use(express.json());
 
 // Definisce le rotte
 app.use("/houses", housesRoutes);
-// app.use("/reviewvs", reviewsRoutes);
 
 app.listen(port, () => {
     console.log(`app is listening on ${port}`);

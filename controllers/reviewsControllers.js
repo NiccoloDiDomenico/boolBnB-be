@@ -1,7 +1,0 @@
-// Index
-
-// Show
-
-// Store
-
-// Destroy

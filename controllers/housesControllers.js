@@ -11,7 +11,7 @@ const index = (req, res) => {
         FROM annunci 
         JOIN cuoricini
         ON annunci.id = cuoricini.annuncio_id
-        ORDER BY annunci.like DESC
+        ORDER BY annunci.likes DESC
     `
 
     connection.query(sql, (err, result) => {
@@ -55,15 +55,13 @@ const show = (req, res) => {
             announcement.review = reviewResults
 
             res.status(200).json(announcement)
-            console.log(announcement);
         })
     })
 }
 
-// Store
-const store = (req, res) => {
+// Store House
+const storeHouse = (req, res) => {
     const { utente_id, tipologia, prezzo_notte, titolo_annuncio, descrizione_annuncio, indirizzo, città, paese, capienza, metri_quadri, numero_camere, numero_letti, numero_bagni, data_creazione } = req.body
-    // console.log(req.body);
 
     const slug = slugify(titolo_annuncio, {
         lower: true,
@@ -83,6 +81,55 @@ const store = (req, res) => {
     })
 };
 
+// Store review
+const storeReview = (req, res) => {
+    const announcementId = req.params.id
+    const { utente_id, nome, commento, giorni_permanenza, data_recensione } = req.body
+
+    const sql = `
+        INSERT INTO recensioni( utente_id, annuncio_id, nome, commento, giorni_permanenza, data_recensione)
+        VALUES (?,?,?,?,?,?)    
+    `
+    connection.query(sql, [utente_id, announcementId, nome, commento, giorni_permanenza, data_recensione], (err, results) => {
+        if (err)
+            return res.status(500).json({ error: "Database query failed", err: err.stack })
+        if (announcementId === null)
+            return res.status(404).json({ error: "Item not found" })
+        res.status(201).json({ message: "Recensione aggiunta" })
+    })
+}
+
+// Store like
+const storeLike = (req, res) => {
+    const announcementId = req.params.id
+    const { utente_id } = req.body
+    const data_assegnazione = new Date();
+
+    const sql = `
+        UPDATE annunci
+        SET likes = likes + 1
+        WHERE annunci.id = ?
+    `
+
+    const addLikeSql = `
+        INSERT INTO Cuoricini(utente_id, annuncio_id, data_assegnazione)
+        VALUES (?, ?, ?)
+    `
+
+    connection.query(sql, [announcementId], (err, result) => {
+        if (err)
+            return res.status(500).json({ error: "Database query failed", err: err.stack })
+        if (announcementId === null)
+            return res.status(404).json({ error: "Item not found" })
+
+        connection.query(addLikeSql, [utente_id, announcementId, data_assegnazione], (err, addLikeResult) => {
+            if (err)
+                return res.status(500).json({ error: "Database query failed", err: err.stack })
+            res.status(201).json({ message: "Like aggiornato e aggiunto" })
+        })
+    })
+}
+
 // Destroy
 const destroy = (req, res) => {
 
@@ -91,6 +138,8 @@ const destroy = (req, res) => {
 module.exports = {
     index,
     show,
-    store,
+    storeHouse,
+    storeReview,
+    storeLike,
     destroy
 }

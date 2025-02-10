@@ -4,21 +4,58 @@ const slugify = require('slugify');
 
 // Index
 const index = (req, res) => {
-    console.log("Sto inviando i dati");
+    // console.log("Sto inviando i dati");
 
-    const sql = `
-        SELECT DISTINCT annunci.* 
-        FROM annunci 
-        LEFT JOIN cuoricini
-        ON annunci.id = cuoricini.annuncio_id
-        ORDER BY annunci.likes DESC
+    // prendo i query params
+    let { città, indirizzo_completo, stanzeMin, postiLettoMin, tipologia } = req.query
+    let filters = []
+    let values = []
+
+    // Filtro per città o indirizzo (anche parziale)
+    if (città && indirizzo_completo) {
+        filters.push("(città LIKE ? AND indirizzo_completo LIKE ?)");
+        values.push(`%${città}%`, `%${indirizzo_completo}%`);
+    } else if (città) {
+        filters.push("città LIKE ?");
+        values.push(`%${città}%`);
+    } else if (indirizzo_completo) {
+        filters.push("indirizzo_completo LIKE ?");
+        values.push(`%${indirizzo_completo}%`);
+    }
+
+    // Filtro per numero minimo di stanze e posti letto
+    if (stanzeMin) {
+        filters.push("numero_camere >= ?");
+        values.push(parseInt(stanzeMin));
+    }
+    if (postiLettoMin) {
+        filters.push("numero_letti >= ?");
+        values.push(parseInt(postiLettoMin));
+    }
+
+    // Filtro per tipologia di immobile
+    if (tipologia) {
+        filters.push("tipologia = ?");
+        values.push(tipologia);
+    }
+
+    // preparo la query iniziale
+    let sql = `
+        SELECT * FROM annunci
     `
 
-    connection.query(sql, (err, result) => {
+    if (filters.length > 0) {
+        sql += " WHERE " + filters.join(" AND ");
+    }
+
+    // ordina la query finale per n. di cuoricini
+    sql += " ORDER BY likes DESC"
+
+    connection.query(sql, values, (err, result) => {
         if (err)
             return res.status(500).json({ error: 'Database query failed' })
         res.status(200).json({ data: result })
-    })
+    });
 };
 
 // Show

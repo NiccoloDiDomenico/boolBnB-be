@@ -11,7 +11,7 @@ router.get("/", housesControllers.index);
 router.get("/:slug", housesControllers.show);
 
 // Store - house
-router.post("/", publicUpload.single("immagine"), housesControllers.storeHouse);
+router.post("/", publicUpload.array("foto", 10), housesControllers.storeHouse);
 
 // Store - house review
 router.post("/:id/review", housesControllers.storeReview);
@@ -23,3 +23,5 @@ router.post("/:id/like", housesControllers.storeLike);
 router.delete("/:id", housesControllers.destroy);
 
 module.exports = router;
+
+

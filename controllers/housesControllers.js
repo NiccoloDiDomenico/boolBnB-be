@@ -5,46 +5,72 @@ const { v4: uuidv4 } = require('uuid');
 
 // Index
 const index = (req, res) => {
-    // console.log("Sto inviando i dati");
 
     // prendo i query params
     let { indirizzo_completo, stanzeMin, postiLettoMin, tipologia } = req.query
     let filters = []
     let values = []
+    let errors = []
 
-    // Filtro per città o indirizzo (anche parziale)
+    // Filtro e controllo per citta 
     if (indirizzo_completo) {
-        filters.push("indirizzo_completo LIKE ?");
-        values.push(`%${indirizzo_completo}%`);
+        if (typeof indirizzo_completo !== "string" || indirizzo_completo.length > 100) {
+            errors.push("L'indirizzo deve essere una striga valida e non superare i 100 caratteri")
+        } else {
+            filters.push("indirizzo_completo LIKE ?");
+            values.push(`%${indirizzo_completo}%`);
+        }
     }
 
-    // Filtro per numero minimo di stanze e posti letto
+    // Filtro e controllo per numero minimo di stanze 
     if (stanzeMin) {
-        filters.push("numero_camere >= ?");
-        values.push(parseInt(stanzeMin));
+        stanzeMin = parseInt(stanzeMin)
+        if (isNaN(stanzeMin) || stanzeMin < 0) {
+            errors.push("Il numero minimo di stanze deve essere un numero positivo")
+        } else {
+            filters.push("numero_camere >= ?");
+            values.push(parseInt(stanzeMin));
+        }
     }
 
+    // Filtro e controllo per numero minimo di letti 
     if (postiLettoMin) {
-        filters.push("numero_letti >= ?");
-        values.push(parseInt(postiLettoMin));
+        postiLettoMin = parseInt(postiLettoMin)
+        if (isNaN(postiLettoMin) || postiLettoMin < 0) {
+            errors.push("Il numero minimo di stanze deve essere un numero positivo")
+        } else {
+            filters.push("numero_letti >= ?");
+            values.push(parseInt(postiLettoMin));
+        }
     }
 
-    // Filtro per tipologia di immobile
+    // Filtro e controllo per tipologia
+    const tipologieAccettate = ["appartamento", "casa indipendente", "villa", "villetta a schiera", "chalet", "baita"];
     if (tipologia) {
-        filters.push("tipologia = ?");
-        values.push(tipologia);
+        if (!tipologieAccettate.includes(tipologia.toLowerCase().trim())) {
+            errors.push(`La tipologia deve essere una delle seguenti: ${tipologieAccettate.join(", ")}.`)
+        } else {
+            filters.push("tipologia = ?");
+            values.push(tipologia);
+        }
     }
 
-    // preparo la query iniziale
-    let sql = `
-        SELECT * FROM annunci
-    `
+    // Se ci sono errori, li restituiamo subito
+    if (errors.length > 0) {
+        return res.status(400).json({ error: "Parametri non validi", details: errors });
+    }
 
+    // Preparo la query base
+    let sql = `
+            SELECT * FROM annunci
+        `
+
+    // Aggiunta dei filtri alla query
     if (filters.length > 0) {
         sql += " WHERE " + filters.join(" AND ");
     }
 
-    // ordina la query finale per n. di cuoricini
+    // ordina la query finale per n. di likes
     sql += " ORDER BY likes DESC"
 
     connection.query(sql, values, (err, result) => {

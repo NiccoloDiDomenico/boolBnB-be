@@ -96,8 +96,12 @@ const show = (req, res) => {
 const storeHouse = (req, res) => {
 
     const data_creazione = new Date();
-    const { titolo_annuncio, descrizione_annuncio, tipologia, metri_quadrati, indirizzo_completo, numero_camere, numero_letti, numero_bagni, email_proprietario, stato_annuncio, descrizione_foto } = req.body
+    const { titolo_annuncio, descrizione_annuncio, tipologia, metri_quadrati, indirizzo, cap, citta, paese, numero_camere, numero_letti, numero_bagni, email_proprietario, stato_annuncio, descrizione_foto } = req.body
     const uuid = uuidv4()
+    const indirizzoArray = [indirizzo, cap, citta, paese]
+    const indirizzo_completo = indirizzoArray.join(", ")
+    console.log(indirizzo_completo);
+
 
     const titoloAnnuncio = titolo_annuncio ? titolo_annuncio.toString() : "annuncio-senza-titolo";
     const slug = slugify(titoloAnnuncio, { lower: true, strict: true });
@@ -145,17 +149,18 @@ const storeHouse = (req, res) => {
 
 // Store review
 const storeReview = (req, res) => {
-    const announcementId = req.params.id
-    const { utente_id, nome, commento, giorni_permanenza, data_recensione } = req.body
+    const annuncioId = req.params.id
+    const { nome, commento, giorni_permanenza } = req.body
+    const data_recensione = new Date()
 
     const sql = `
-        INSERT INTO recensioni( utente_id, annuncio_id, nome, commento, giorni_permanenza, data_recensione)
-        VALUES (?,?,?,?,?,?)    
+        INSERT INTO recensioni( annuncio_id, nome, commento, giorni_permanenza, data_recensione)
+        VALUES (?,?,?,?,?)    
     `
-    connection.query(sql, [utente_id, announcementId, nome, commento, giorni_permanenza, data_recensione], (err, results) => {
+    connection.query(sql, [annuncioId, nome, commento, giorni_permanenza, data_recensione], (err, results) => {
         if (err)
-            return res.status(500).json({ error: "Database query failed", err: err.stack })
-        if (announcementId === null)
+            return res.status(500).json({ error: "Database query failed" })
+        if (annuncioId === null)
             return res.status(404).json({ error: "Item not found" })
         res.status(201).json({ message: "Recensione aggiunta" })
     })
@@ -163,9 +168,7 @@ const storeReview = (req, res) => {
 
 // Store like
 const storeLike = (req, res) => {
-    const announcementId = req.params.id
-    const { utente_id } = req.body
-    const data_assegnazione = new Date();
+    const id = req.params.id
 
     const sql = `
         UPDATE annunci
@@ -173,22 +176,12 @@ const storeLike = (req, res) => {
         WHERE annunci.id = ?
     `
 
-    const addLikeSql = `
-        INSERT INTO Cuoricini(utente_id, annuncio_id, data_assegnazione)
-        VALUES (?, ?, ?)
-    `
-
-    connection.query(sql, [announcementId], (err, result) => {
+    connection.query(sql, [id], (err, result) => {
         if (err)
-            return res.status(500).json({ error: "Database query failed", err: err.stack })
-        if (announcementId === null)
+            return res.status(500).json({ error: "Database query failed" })
+        if (id === null)
             return res.status(404).json({ error: "Item not found" })
-
-        connection.query(addLikeSql, [utente_id, announcementId, data_assegnazione], (err, addLikeResult) => {
-            if (err)
-                return res.status(500).json({ error: "Database query failed", err: err.stack })
-            res.status(201).json({ message: "Like aggiornato e aggiunto" })
-        })
+        res.status(201).json({ message: "Like aggiornato" })
     })
 }
 

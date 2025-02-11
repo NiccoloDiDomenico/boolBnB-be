@@ -121,26 +121,93 @@ const show = (req, res) => {
 // Store House
 const storeHouse = (req, res) => {
 
-    const data_creazione = new Date();
     const { titolo_annuncio, descrizione_annuncio, tipologia, metri_quadrati, indirizzo, cap, citta, paese, numero_camere, numero_letti, numero_bagni, email_proprietario, stato_annuncio, descrizione_foto } = req.body
     const uuid = uuidv4()
+    const slug = slugify(titolo_annuncio, { lower: true, strict: true });
     const indirizzoArray = [indirizzo, cap, citta, paese]
     const indirizzo_completo = indirizzoArray.join(", ")
-    console.log(indirizzo_completo);
+    const data_creazione = new Date();
+
+    let errors = []
 
 
-    const titoloAnnuncio = titolo_annuncio ? titolo_annuncio.toString() : "annuncio-senza-titolo";
-    const slug = slugify(titoloAnnuncio, { lower: true, strict: true });
+
+    // Controllo titolo 
+    if (!titolo_annuncio || typeof titolo_annuncio !== "string" || titolo_annuncio.length > 250) {
+        errors.push("Il titolo deve essere una stringa non vuota e con massimo 250 caratteri")
+    }
+
+    // Controllo descrizione
+    if (!descrizione_annuncio || typeof descrizione_annuncio !== "string" || descrizione_annuncio.length < 20) {
+        errors.push("Il titolo deve essere una stringa non vuota e di minimo 20 caratteri")
+    }
+
+    // Controllo metri quadrati
+    if (!metri_quadrati || isNaN(metri_quadrati) || metri_quadrati <= 0 || metri_quadrati > 10000) {
+        errors.push("I metri quadrati devono essere un numero positivo e inferiore a 10.000.");
+    }
+
+    // Controllo indirizzo e CAP
+    if (!indirizzo || typeof indirizzo !== "string" || indirizzo.trim().length < 5) {
+        errors.push("L'indirizzo deve essere una stringa valida.");
+    }
+    if (!cap || !/^\d{5}$/.test(cap)) {
+        errors.push("Il CAP deve essere un numero di 5 cifre.");
+    }
+    if (!citta || typeof citta !== "string") {
+        errors.push("La città deve essere una stringa valida.");
+    }
+    if (!paese || typeof paese !== "string") {
+        errors.push("Il paese deve essere una stringa valida.");
+    }
+
+    // Controllo numero camere, letti e bagni
+    if (!numero_camere || isNaN(numero_camere) || numero_camere <= 0 || numero_camere > 50) {
+        errors.push("Il numero di camere deve essere un numero positivo e inferiore a 50.");
+    }
+    if (!numero_letti || isNaN(numero_letti) || numero_letti <= 0 || numero_letti > 50) {
+        errors.push("Il numero di letti deve essere un numero positivo e inferiore a 50.");
+    }
+    if (!numero_bagni || isNaN(numero_bagni) || numero_bagni <= 0 || numero_bagni > 20) {
+        errors.push("Il numero di bagni deve essere un numero positivo e inferiore a 20.");
+    }
+
+    // Controllo email proprietario
+    if (!email_proprietario || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email_proprietario)) {
+        errors.push("L'email del proprietario non è valida.");
+    }
+
+    // Controllo stato annuncio
+    const statiValidi = ["attivo", "non disponibile", "sospeso"];
+    if (!stato_annuncio || !statiValidi.includes(stato_annuncio.toLowerCase())) {
+        errors.push(`Lo stato dell'annuncio deve essere uno tra: ${statiValidi.join(", ")}.`);
+    }
+
+    // Controllo descrizione foto
+    if (descrizione_foto && descrizione_foto.length > 255) {
+        errors.push("La descrizione della foto non può superare i 255 caratteri.");
+    }
+
+    // Controllo immagini caricate (solo se presenti)
+    if (req.files && req.files.length > 0) {
+        const allowedExtensions = ["jpg", "jpeg", "png"];
+        req.files.forEach(file => {
+            const fileExtension = file.filename.split(".").pop().toLowerCase();
+            if (!allowedExtensions.includes(fileExtension)) {
+                errors.push(`Il file ${file.filename} non è un'immagine valida. Formati accettati: jpg, jpeg, png.`);
+            }
+        });
+    }
+
+    // Se ci sono errori, interrompiamo il processo e restituiamo l'errore
+    if (errors.length > 0) {
+        return res.status(400).json({ error: "Dati non validi", dettagli: errors });
+    }
 
     const houseSql = `
         INSERT INTO annunci(uuid, slug, titolo_annuncio, descrizione_annuncio, tipologia, metri_quadrati, likes, indirizzo_completo, numero_camere, numero_letti, numero_bagni, email_proprietario, stato_annuncio, data_creazione)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-
-    const photoSql = `
-        INSERT INTO foto(annuncio_id, url_foto, descrizione_foto)
-        VALUES (?, ?, ?)
-    `
 
     connection.query(houseSql, [uuid, slug, titolo_annuncio, descrizione_annuncio, tipologia, metri_quadrati, 0, indirizzo_completo, numero_camere, numero_letti, numero_bagni, email_proprietario, stato_annuncio, data_creazione], (err, houseResult) => {
 
@@ -156,6 +223,11 @@ const storeHouse = (req, res) => {
         if (!req.files || req.files.length === 0) {
             return res.status(201).json({ message: "Appartamento aggiunto senza immagini" });
         }
+
+        const photoSql = `
+            INSERT INTO foto(annuncio_id, url_foto, descrizione_foto)
+            VALUES (?, ?, ?)
+        `
 
         // se le foto sono state aggiunte, le salva nel db
         const photoPromises = req.files.map(file => {

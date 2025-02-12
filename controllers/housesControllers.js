@@ -62,10 +62,12 @@ const index = (req, res) => {
 
     // Preparo la query base
     let sql = `
-            SELECT annunci.*, COUNT(recensioni.id) as num_recensioni
+            SELECT annunci.*, COUNT(DISTINCT recensioni.id) AS num_recensioni, GROUP_CONCAT(DISTINCT foto.url_foto SEPARATOR ', ') AS foto
             FROM annunci 
-            JOIN recensioni
+            LEFT JOIN recensioni
             ON annunci.id = recensioni.annuncio_id
+            LEFT JOIN foto
+            ON annunci.id = foto.annuncio_id
         `
 
     // Aggiunta dei filtri alla query
@@ -74,11 +76,21 @@ const index = (req, res) => {
     }
 
     // ordina la query finale per n. di likes
-    sql += ` GROUP BY annunci.id ORDER BY likes DESC`
+    sql += ` GROUP BY annunci.id ORDER BY annunci.likes DESC`
 
     connection.query(sql, values, (err, result) => {
         if (err)
             return res.status(500).json({ error: 'Database query failed' })
+
+        // raggruppa le foto dell'annuncio in un array se ci sono
+        result.map(curAnnuncement => {
+            let fotoArray = []
+            if (curAnnuncement.foto) {
+                (fotoArray = curAnnuncement.foto.split(","))
+                curAnnuncement.foto = fotoArray
+            }
+        })
+
         res.status(200).json({ data: result })
     });
 };
@@ -88,9 +100,12 @@ const show = (req, res) => {
     const slug = req.params.slug
 
     const announcementSql = `
-        SELECT * 
+        SELECT annunci.*, GROUP_CONCAT(DISTINCT foto.url_foto SEPARATOR ', ') AS foto 
         FROM annunci 
+        LEFT JOIN foto
+        ON annunci.id = foto.annuncio_id
         WHERE slug = ?
+        GROUP BY annunci.id
     `
 
     const reviewsSql = `
@@ -111,6 +126,12 @@ const show = (req, res) => {
 
         // recuperare l'annuncio
         const announcement = announcementResults[0]
+
+        // raggruppa le foto dell'annuncio in un array se ci sono
+        if (announcement.foto) {
+            const fotoArray = announcement.foto.split(",")
+            announcement.foto = fotoArray
+        }
 
         connection.query(reviewsSql, [slug], (err, reviewResults) => {
             if (err)

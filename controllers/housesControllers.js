@@ -130,8 +130,6 @@ const storeHouse = (req, res) => {
 
     let errors = []
 
-
-
     // Controllo titolo 
     if (!titolo_annuncio || typeof titolo_annuncio !== "string" || titolo_annuncio.length > 250) {
         errors.push("Il titolo deve essere una stringa non vuota e con massimo 250 caratteri")
@@ -250,6 +248,21 @@ const storeReview = (req, res) => {
     const annuncioId = req.params.id
     const { nome, commento, giorni_permanenza } = req.body
     const data_recensione = new Date()
+
+    // Controllo nome 
+    if (!nome || typeof nome !== "string" || nome.length < 3) {
+        errors.push("Il nome deve essere una stringa non vuota e con minimo 3 caratteri")
+    }
+
+    // Controllo commento
+    if (!commento || typeof commento !== "string" || commento.length < 20) {
+        errors.push("Il commento deve essere una stringa non vuota e di minimo 20 caratteri")
+    }
+
+    // Controllo giorni permanenza
+    if (!giorni_permanenza || isNaN(giorni_permanenza) || giorni_permanenza < 0) {
+        errors.push("Il numero di giorni permanenza deve essere un numero positivo.");
+    }
 
     const sql = `
         INSERT INTO recensioni( annuncio_id, nome, commento, giorni_permanenza, data_recensione)

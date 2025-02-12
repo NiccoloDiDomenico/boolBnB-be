@@ -74,7 +74,7 @@ const index = (req, res) => {
     }
 
     // ordina la query finale per n. di likes
-    sql += " GROUP BY annunci.id ORDER BY likes DESC"
+    sql += ` GROUP BY annunci.id ORDER BY likes DESC`
 
     connection.query(sql, values, (err, result) => {
         if (err)
@@ -209,7 +209,9 @@ const storeHouse = (req, res) => {
     let baseSlug = slugify(titolo_annuncio, { lower: true, strict: true });
 
     // Controllo se lo slug esiste già nel database
-    const checkSlugSql = `SELECT COUNT(*) AS count FROM annunci WHERE slug LIKE ?`;
+    const checkSlugSql = `
+        SELECT COUNT(*) AS count FROM annunci WHERE slug LIKE ?
+    `;
 
     connection.query(checkSlugSql, [`${baseSlug}%`], (err, result) => {
         if (err) {
@@ -225,9 +227,9 @@ const storeHouse = (req, res) => {
         }
 
         const houseSql = `
-        INSERT INTO annunci(uuid, slug, titolo_annuncio, descrizione_annuncio, tipologia, metri_quadrati, likes, indirizzo_completo, numero_camere, numero_letti, numero_bagni, email_proprietario, stato_annuncio, data_creazione)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+            INSERT INTO annunci(uuid, slug, titolo_annuncio, descrizione_annuncio, tipologia, metri_quadrati, likes, indirizzo_completo, numero_camere, numero_letti, numero_bagni, email_proprietario, stato_annuncio, data_creazione)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
 
         connection.query(houseSql, [uuid, slug, titolo_annuncio, descrizione_annuncio, tipologia, metri_quadrati, 0, indirizzo_completo, numero_camere, numero_letti, numero_bagni, email_proprietario, stato_annuncio, data_creazione], (err, houseResult) => {
 
@@ -245,9 +247,9 @@ const storeHouse = (req, res) => {
             }
 
             const photoSql = `
-            INSERT INTO foto(annuncio_id, url_foto, descrizione_foto)
-            VALUES (?, ?, ?)
-        `
+                INSERT INTO foto(annuncio_id, url_foto, descrizione_foto)
+                VALUES (?, ?, ?)
+            `
 
             // se le foto sono state aggiunte, le salva nel db
             const photoPromises = req.files.map(file => {

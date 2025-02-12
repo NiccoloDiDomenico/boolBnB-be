@@ -1,6 +1,6 @@
 const pageNotFound = (req, res, next) => {
     res.status(404).json({
-        status: "fail",
+        status: "Fail",
         message: "Pagina non trovata"
     })
 }

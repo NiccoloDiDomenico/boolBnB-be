@@ -19,9 +19,4 @@ router.post("/:id/review", housesControllers.storeReview);
 // Store - house like
 router.post("/:id/like", housesControllers.storeLike);
 
-// Destroy 
-router.delete("/:id", housesControllers.destroy);
-
 module.exports = router;
-
-

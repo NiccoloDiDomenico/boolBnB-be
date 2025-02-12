@@ -62,7 +62,10 @@ const index = (req, res) => {
 
     // Preparo la query base
     let sql = `
-            SELECT * FROM annunci
+            SELECT annunci.*, COUNT(recensioni.id) as num_recensioni
+            FROM annunci 
+            JOIN recensioni
+            ON annunci.id = recensioni.annuncio_id
         `
 
     // Aggiunta dei filtri alla query
@@ -71,7 +74,7 @@ const index = (req, res) => {
     }
 
     // ordina la query finale per n. di likes
-    sql += " ORDER BY likes DESC"
+    sql += " GROUP BY annunci.id ORDER BY likes DESC"
 
     connection.query(sql, values, (err, result) => {
         if (err)
@@ -269,6 +272,8 @@ const storeReview = (req, res) => {
     const { nome, commento, giorni_permanenza } = req.body
     const data_recensione = new Date()
 
+    let errors = []
+
     // Controllo nome 
     if (!nome || typeof nome !== "string" || nome.length < 3) {
         errors.push("Il nome deve essere una stringa non vuota e con minimo 3 caratteri")
@@ -282,6 +287,11 @@ const storeReview = (req, res) => {
     // Controllo giorni permanenza
     if (!giorni_permanenza || isNaN(giorni_permanenza) || giorni_permanenza < 0) {
         errors.push("Il numero di giorni permanenza deve essere un numero positivo.");
+    }
+
+    // Se ci sono errori, interrompiamo il processo e restituiamo l'errore
+    if (errors.length > 0) {
+        return res.status(400).json({ error: "Dati non validi", dettagli: errors });
     }
 
     const sql = `

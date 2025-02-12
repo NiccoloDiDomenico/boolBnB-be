@@ -101,9 +101,11 @@ const show = (req, res) => {
     connection.query(announcementSql, [slug], (err, announcementResults) => {
         if (err)
             return res.status(500).json({ error: 'Database query failed' })
+        // controllo se il result esiste
         if (announcementResults.length === 0 || announcementResults.id === null) {
             return res.status(404).json({ error: "item not found" })
         }
+
         // recuperare l'annuncio
         const announcement = announcementResults[0]
 
@@ -123,11 +125,9 @@ const storeHouse = (req, res) => {
 
     const { titolo_annuncio, descrizione_annuncio, tipologia, metri_quadrati, indirizzo, cap, citta, paese, numero_camere, numero_letti, numero_bagni, email_proprietario, stato_annuncio, descrizione_foto } = req.body
     const uuid = uuidv4()
-    const slug = slugify(titolo_annuncio, { lower: true, strict: true });
     const indirizzoArray = [indirizzo, cap, citta, paese]
     const indirizzo_completo = indirizzoArray.join(", ")
     const data_creazione = new Date();
-
     let errors = []
 
     // Controllo titolo 
@@ -202,44 +202,64 @@ const storeHouse = (req, res) => {
         return res.status(400).json({ error: "Dati non validi", dettagli: errors });
     }
 
-    const houseSql = `
+    // Creazione dello slug in formato URL-friendly
+    let baseSlug = slugify(titolo_annuncio, { lower: true, strict: true });
+
+    // Controllo se lo slug esiste già nel database
+    const checkSlugSql = `SELECT COUNT(*) AS count FROM annunci WHERE slug LIKE ?`;
+
+    connection.query(checkSlugSql, [`${baseSlug}%`], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: "Errore nella verifica dello slug", err: err.stack });
+        }
+
+        let slug = baseSlug;
+        let slugCount = result[0].count;
+
+        // Se lo slug esiste già, aggiungiamo un numero progressivo
+        if (slugCount > 0) {
+            slug = `${baseSlug}-${slugCount + 1}`;
+        }
+
+        const houseSql = `
         INSERT INTO annunci(uuid, slug, titolo_annuncio, descrizione_annuncio, tipologia, metri_quadrati, likes, indirizzo_completo, numero_camere, numero_letti, numero_bagni, email_proprietario, stato_annuncio, data_creazione)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    connection.query(houseSql, [uuid, slug, titolo_annuncio, descrizione_annuncio, tipologia, metri_quadrati, 0, indirizzo_completo, numero_camere, numero_letti, numero_bagni, email_proprietario, stato_annuncio, data_creazione], (err, houseResult) => {
+        connection.query(houseSql, [uuid, slug, titolo_annuncio, descrizione_annuncio, tipologia, metri_quadrati, 0, indirizzo_completo, numero_camere, numero_letti, numero_bagni, email_proprietario, stato_annuncio, data_creazione], (err, houseResult) => {
 
-        if (err)
-            return res.status(500).json({ error: "Database query failed", err: err.stack })
-        if (houseResult === 0 || houseResult === undefined) {
-            return res.status(500).json({ error: "Result empty or not found", err: err.stack })
-        }
-        // recupera l'annuncio dal risultato della query
-        const annuncio_id = houseResult.insertId
+            if (err)
+                return res.status(500).json({ error: "Database query failed", err: err.stack })
+            if (houseResult === 0 || houseResult === undefined) {
+                return res.status(500).json({ error: "Result empty or not found", err: err.stack })
+            }
+            // recupera l'annuncio dal risultato della query
+            const annuncio_id = houseResult.insertId
 
-        // verifica se le foto sono aggiunte o meno
-        if (!req.files || req.files.length === 0) {
-            return res.status(201).json({ message: "Appartamento aggiunto senza immagini" });
-        }
+            // verifica se le foto sono aggiunte o meno
+            if (!req.files || req.files.length === 0) {
+                return res.status(201).json({ message: "Appartamento aggiunto senza immagini" });
+            }
 
-        const photoSql = `
+            const photoSql = `
             INSERT INTO foto(annuncio_id, url_foto, descrizione_foto)
             VALUES (?, ?, ?)
         `
 
-        // se le foto sono state aggiunte, le salva nel db
-        const photoPromises = req.files.map(file => {
-            return new Promise((resolve, reject) => {
-                connection.query(photoSql, [annuncio_id, file.filename, descrizione_foto], (err, photoResult) => {
-                    if (err) reject(err);
-                    else resolve(photoResult);
+            // se le foto sono state aggiunte, le salva nel db
+            const photoPromises = req.files.map(file => {
+                return new Promise((resolve, reject) => {
+                    connection.query(photoSql, [annuncio_id, file.filename, descrizione_foto], (err, photoResult) => {
+                        if (err) reject(err);
+                        else resolve(photoResult);
+                    });
                 });
             });
-        });
 
-        Promise.all(photoPromises)
-            .catch(err => res.status(500).json({ error: "Database query failed", err: err.stack }))
-            .then(() => res.status(201).json({ message: "Appartamento e immagini aggiunti con successo!" }))
+            Promise.all(photoPromises)
+                .catch(err => res.status(500).json({ error: "Database query failed", err: err.stack }))
+                .then(() => res.status(201).json({ message: "Appartamento e immagini aggiunti con successo!" }))
+        })
     })
 };
 
@@ -296,16 +316,10 @@ const storeLike = (req, res) => {
     })
 }
 
-// Destroy
-const destroy = (req, res) => {
-
-};
-
 module.exports = {
     index,
     show,
     storeHouse,
     storeReview,
-    storeLike,
-    destroy
+    storeLike
 }

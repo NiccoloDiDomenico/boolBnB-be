@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const index = (req, res) => {
 
     // prendo i query params
-    let { indirizzo_completo, stanzeMin, postiLettoMin, tipologia } = req.query
+    let { indirizzo_completo, numero_camere, numero_letti, tipologia } = req.query
     let filters = []
     let values = []
     let errors = []
@@ -23,24 +23,24 @@ const index = (req, res) => {
     }
 
     // Filtro e controllo per numero minimo di stanze 
-    if (stanzeMin) {
-        stanzeMin = parseInt(stanzeMin)
-        if (isNaN(stanzeMin) || stanzeMin < 0) {
+    if (numero_camere) {
+        numero_camere = parseInt(numero_camere)
+        if (isNaN(numero_camere) || numero_camere < 0) {
             errors.push("Il numero minimo di stanze deve essere un numero positivo")
         } else {
             filters.push("numero_camere >= ?");
-            values.push(parseInt(stanzeMin));
+            values.push(parseInt(numero_camere));
         }
     }
 
     // Filtro e controllo per numero minimo di letti 
-    if (postiLettoMin) {
-        postiLettoMin = parseInt(postiLettoMin)
-        if (isNaN(postiLettoMin) || postiLettoMin < 0) {
+    if (numero_letti) {
+        numero_letti = parseInt(numero_letti)
+        if (isNaN(numero_letti) || numero_letti < 0) {
             errors.push("Il numero minimo di stanze deve essere un numero positivo")
         } else {
             filters.push("numero_letti >= ?");
-            values.push(parseInt(postiLettoMin));
+            values.push(parseInt(numero_letti));
         }
     }
 

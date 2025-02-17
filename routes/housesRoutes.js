@@ -19,4 +19,7 @@ router.post("/:id/review", housesControllers.storeReview);
 // Store - house like
 router.post("/:id/like", housesControllers.storeLike);
 
+// Store - host message
+router.post("/:id/message", housesControllers.storeMessage);
+
 module.exports = router;

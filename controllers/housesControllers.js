@@ -2,6 +2,7 @@
 const connection = require('../data/bnb_db');
 const slugify = require('slugify');
 const { v4: uuidv4 } = require('uuid');
+const nodemailer = require('nodemailer');
 
 // Index
 const index = (req, res) => {
@@ -349,10 +350,73 @@ const storeLike = (req, res) => {
     })
 }
 
+// Store message
+const storeMessage = (req, res) => {
+    const annuncio_id = req.params.id
+    const { email_ospite, messaggio } = req.body
+
+    let errors = []
+
+    // Controllo email_ospite
+    if (!email_ospite || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email_ospite)) {
+        errors.push("L'email non è valida.");
+    }
+
+    // Controllo messaggio
+    if (!messaggio || typeof messaggio !== "string" || messaggio.length < 20) {
+        errors.push("Il messaggio deve essere una stringa non vuota e di minimo 20 caratteri")
+    }
+
+    // Se ci sono errori, interrompiamo il processo e restituiamo l'errore
+    if (errors.length > 0) {
+        return res.status(400).json({ error: "Dati non validi", dettagli: errors });
+    }
+
+    const sql = `
+        INSERT INTO comunicazioni(annuncio_id, email_ospite, messaggio)
+        VALUES (?,?,?)
+    `
+
+    connection.query(sql, [annuncio_id, email_ospite, messaggio], (err, result) => {
+        if (err)
+            return res.status(500).json({ error: "Database query failed" })
+        if (annuncio_id === null)
+            return res.status(404).json({ error: "Item not found" })
+
+        // Configurazione del trasportatore di nodemailer per Mailtrap
+        const transporter = nodemailer.createTransport({
+            host: 'sandbox.smtp.mailtrap.io',
+            port: 2525,
+            auth: {
+                user: process.env.MT_USER,
+                pass: process.env.MT_PASSWORD
+            }
+        });
+
+        // Opzioni dell'email
+        const mailOptions = {
+            from: email_ospite,
+            to: 'testBoolBnB@gmail.com',
+            subject: 'Nuovo messaggio da BoolBnB',
+            text: messaggio
+        };
+
+        // Invio dell'email
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                return res.status(500).json({ error: "Email sending failed", details: error });
+            } else {
+                res.status(201).json({ message: "Messaggio inviato e email inviata con successo!" });
+            }
+        });
+    })
+}
+
 module.exports = {
     index,
     show,
     storeHouse,
     storeReview,
-    storeLike
+    storeLike,
+    storeMessage
 }

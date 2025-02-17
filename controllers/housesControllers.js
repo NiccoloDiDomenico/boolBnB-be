@@ -115,6 +115,7 @@ const show = (req, res) => {
         JOIN recensioni
         ON annunci.id = recensioni.annuncio_id
         WHERE annunci.slug = ?
+        ORDER BY recensioni.data_recensione DESC
     `
 
     connection.query(announcementSql, [slug], (err, announcementResults) => {

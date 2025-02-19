@@ -131,7 +131,7 @@ const show = (req, res) => {
 
         // raggruppa le foto dell'annuncio in un array se ci sono
         if (announcement.foto) {
-            const fotoArray = announcement.foto.split(",")
+            const fotoArray = announcement.foto.split(", ") // splitto le foto in un array di stringhe separate da virgola e spazio 
             announcement.foto = fotoArray
         }
 
